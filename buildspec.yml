@@ -11,6 +11,7 @@ phases:
     commands:
       - echo Build started on `date`
       - mvn install
+      - aws s3 cp cloudformation.yaml s3://application-artifacts-andreas/
   post_build:
     commands:
       - echo Build completed on `date`
@@ -18,5 +19,6 @@ artifacts:
   files:
     - target/ImageResizer-0.0.1-SNAPSHOT.jar
     - cloudformation.yaml
-  name: ImageResizer
+
+
 
