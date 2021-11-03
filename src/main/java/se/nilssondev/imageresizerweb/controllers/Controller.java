@@ -15,4 +15,9 @@ public class Controller {
     public String test(){
         return "yes better believe it";
     }
+
+    @GetMapping("/test-again")
+    public String testAgain(){
+        return "testing again";
+    }
 }
