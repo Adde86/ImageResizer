@@ -20,4 +20,9 @@ public class Controller {
     public String testAgain(){
         return "testing again";
     }
+
+    @GetMapping("/test-three")
+    public String testThree(){
+        return "Third time the charm";
+    }
 }
