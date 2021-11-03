@@ -17,5 +17,6 @@ phases:
 artifacts:
   files:
     - target/ImageResizer-0.0.1-SNAPSHOT.jar
+    - cloudformation.yaml
   name: ImageResizer
 
