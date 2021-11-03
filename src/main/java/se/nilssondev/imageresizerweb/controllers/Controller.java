@@ -10,4 +10,9 @@ public class Controller {
     public String index(){
         return "Hello aws";
     }
+
+    @GetMapping("/test")
+    public String test(){
+        return "yes better believe it";
+    }
 }
