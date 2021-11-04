@@ -6,7 +6,6 @@ phases:
       java: corretto11
   pre_build:
     commands:
-      - pip install --upgrade awscli==1.18.17
       - echo aws --version
       - aws ecr get-login-password --region eu-west-1 | docker login --username AWS --password-stdin 977629633660.dkr.ecr.eu-west-1.amazonaws.com
       - REPOSITORY_URI=977629633660.dkr.ecr.eu-west-1.amazonaws.com/nilssondev
@@ -15,10 +14,10 @@ phases:
       - echo Build started on `date`
       - mvn clean install
       - mvn spring-boot:build-image
-      - docker tag $REPOSITORY_URI:latest image-resizer
+      - docker tag  image-resizer 977629633660.dkr.ecr.eu-west-1.amazonaws.com/nilssondev:latest
   post_build:
     commands:
-      - docker push $REPOSITORY_URI:latest
+      - docker push 977629633660.dkr.ecr.eu-west-1.amazonaws.com/nilssondev:latest
 artifacts:
   files:
     - target/ImageResizer-0.0.1-SNAPSHOT.jar
