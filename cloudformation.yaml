@@ -21,8 +21,7 @@ Resources:
       ImageId: ami-0ed961fa828560210
       InstanceType: t2.micro
       KeyName: ImageResizerPutty
-      SecurityGroupIds:
-        - Ref: InstanceSecurityGroup
+      SecurityGroupIds: "MyInstanceProfile"
       UserData:
         Fn::Base64: |
           #!/bin/bash
@@ -33,12 +32,7 @@ Resources:
           sudo unzip myapp.zip
           java -jar target/ImageResizer-0.0.1-SNAPSHOT.jar
 
-  MyInstanceProfile:
-    Type: "AWS::IAM::InstanceProfile"
-    Properties:
-      Path: "/"
-      Roles:
-        - "EC2-S3-FA"
+
 Outputs:
   PublicIp:
     Value:
