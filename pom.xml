@@ -36,7 +36,7 @@
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
                     <image>
-                        <name>${project.artifactId}:${project.version}</name>
+                        <name>ImageResizer</name>
                     </image>
                 </configuration>
             </plugin>

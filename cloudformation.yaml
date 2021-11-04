@@ -17,11 +17,12 @@ Resources:
   Linux:
     Type: 'AWS::EC2::Instance'
     Properties:
-      IamInstanceProfile: !Ref MyInstanceProfile
+      IamInstanceProfile: "MyInstanceProfile"
       ImageId: ami-0ed961fa828560210
       InstanceType: t2.micro
       KeyName: ImageResizerPutty
-      SecurityGroupIds: "MyInstanceProfile"
+      SecurityGroupIds:
+        - Ref: InstanceSecurityGroup
       UserData:
         Fn::Base64: |
           #!/bin/bash
@@ -31,7 +32,6 @@ Resources:
           sudo aws s3api get-object --bucket application-artifacts-andreas --key myapp.zip myapp.zip
           sudo unzip myapp.zip
           java -jar target/ImageResizer-0.0.1-SNAPSHOT.jar
-
 
 Outputs:
   PublicIp:
