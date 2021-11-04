@@ -13,7 +13,7 @@ phases:
       - echo Build started on `date`
       - mvn clean install
       - mvn spring-boot:build-image
-      - docker tag $REPOSITORY_URI:latest ImageResizer
+      - docker tag $REPOSITORY_URI:latest image-resizer
   post_build:
     commands:
       - docker push $REPOSITORY_URI:latest
