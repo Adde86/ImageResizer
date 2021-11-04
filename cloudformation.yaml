@@ -28,9 +28,10 @@ Resources:
           #!/bin/bash
           sudo yum -y update
           sudo yum -y install java
-          aws s3api get-object --bucket application-artifacts-andreas --key myapp.zip myapp.zip
-          unzip myapp.zip
-          java -jar /home/ec2-user/target/ImageResizer-0.0.1-SNAPSHOT.jar
+          cd /
+          sudo aws s3api get-object --bucket application-artifacts-andreas --key myapp.zip myapp.zip
+          sudo unzip myapp.zip
+          java -jar target/ImageResizer-0.0.1-SNAPSHOT.jar
 
   MyInstanceProfile:
     Type: "AWS::IAM::InstanceProfile"
