@@ -3,7 +3,7 @@ Resources:
   InstanceSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupName: "Internet Group"
+      GroupName: "Internet Group For Image Resizer"
       GroupDescription: "SSH and web traffic in, all traffic out."
       SecurityGroupIngress:
         - IpProtocol: tcp
@@ -11,19 +11,21 @@ Resources:
           ToPort: '22'
           CidrIp:  0.0.0.0/0
         - IpProtocol: tcp
-          FromPort: '5000'
-          ToPort: '5000'
+          FromPort: '80'
+          ToPort: '80'
           CidrIp: 0.0.0.0/0
   ResizerInstanceProfile:
     Type: 'AWS::IAM::InstanceProfile'
     Properties:
       InstanceProfileName: "ResizerInstanceProfile"
       Roles:
-        -
-          Ref: "EC2-S3-FA"
+        - "EC2InstanceRole"
   Linux:
     Type: 'AWS::EC2::Instance'
     Properties:
+      Tags:
+        - Key: "Name"
+          Value: "image-resizer-server"
       IamInstanceProfile: !Ref ResizerInstanceProfile
       ImageId: ami-0ed961fa828560210
       InstanceType: t2.micro
@@ -33,13 +35,30 @@ Resources:
       UserData:
         Fn::Base64: |
           #!/bin/bash
-          sudo yum -y update
-          sudo yum -y install java
-          cd /
-          aws s3api get-object --bucket application-artifacts-andreas --key myapp.zip myapp.zip
-          unzip myapp.zip
-          java -jar target/ImageResizer-0.0.1-SNAPSHOT.jar
+          yum -y update
+          yum install -y ruby
+          yum install -y aws-cli
+          yum install -y java
+          cd /home/ec2-user
+          wget https://aws-codedeploy-us-east-2.s3.us-east-2.amazonaws.com/latest/install
+          chmod +x ./install
+          ./install auto
 
+  ApplicationDeployment:
+    Type: AWS::CodeDeploy::Application
+    Properties:
+      ApplicationName: "image-resizer-server"
+      ComputePlatform: "Server"
+  DeploymentGroup:
+    Type: AWS::CodeDeploy::DeploymentGroup
+    Properties:
+      ApplicationName: !Ref ApplicationDeployment
+      DeploymentGroupName: image-resizer-app-group
+      Ec2TagFilters:
+        - Key: "Name"
+          Value: "image-resizer-server"
+          Type: "KEY_AND_VALUE"
+      ServiceRoleArn: "arn:aws:iam::977629633660:role/CodeDeployRole"
 Outputs:
   PublicIp:
     Value:

@@ -1,0 +1,76 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Template to set up ECS cluster with a running task
+Resources:
+  MyCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: my-cluster
+      CapacityProviders:
+        - FARGATE
+  MyService:
+    Type: AWS::ECS::Service
+    Properties:
+      Name: image-resizer-service
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          Subnets:
+            - subnet-c218ec89
+            - subnet-b053b6c9
+          SecurityGroups:
+            - !Ref ContainerSecurityGroup
+      LaunchType: FARGATE
+      Cluster:
+        Ref: "MyCluster"
+      DesiredCount: 1
+      TaskDefinition:
+        Ref: "MyTask"
+  MyTask:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Cpu: 256
+      Memory: 0.5GB
+      ExecutionRoleArn: !Ref ExecutionRole
+      #TaskRoleArn: !Ref TaskRole
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      ContainerDefinitions:
+        -
+         Image: 977629633660.dkr.ecr.eu-west-1.amazonaws.com/nilssondev:latest
+         Name: image-resizer
+         PortMappings:
+           -
+             ContainerPort: 5000
+             HostPort: 5000
+             Protocol: TCP
+
+  ExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: ECS-ECR-Access
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: 'sts:AssumeRole'
+      ManagedPolicyArns:
+         - 'arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy'
+  ContainerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: vpc-60f05b19
+      GroupDescription: allow port 5000
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 5000
+          ToPort: 5000
+          CidrIp: 0.0.0.0/0
+
+
+
+
+
+
+

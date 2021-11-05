@@ -8,7 +8,7 @@ public class Controller {
 
     @GetMapping("/")
     public String index(){
-        return "Hello aws how you doing today?";
+        return "Index has been changed";
     }
 
     @GetMapping("/test")
