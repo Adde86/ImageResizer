@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.com">
+<head>
+    <meta charset="UTF-8">
+    <title>Image Resizer</title>
+</head>
+<body>
+<ul>
+    <li th:each="image : ${images}">
+
+        <img th:src="${image}" alt="an image"/>
+    </li>
+
+</ul>
+
+</body>
+</html>
