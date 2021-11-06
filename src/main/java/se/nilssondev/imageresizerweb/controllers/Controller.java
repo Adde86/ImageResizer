@@ -18,7 +18,7 @@ public class Controller {
 
     @GetMapping("/test-again")
     public String testAgain(){
-        return "testing again";
+        return "ECS works, does CodeDeploy application?";
     }
 
     @GetMapping("/test-three")

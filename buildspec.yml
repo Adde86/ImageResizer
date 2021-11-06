@@ -25,7 +25,8 @@ artifacts:
     - imagedefinitions.json
     - target/*
     - scripts/*
-    - cloudformation.yaml
+    - appspec.yml
+
 
 
 
