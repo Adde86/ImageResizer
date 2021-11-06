@@ -10,7 +10,7 @@ Resources:
   MyService:
     Type: AWS::ECS::Service
     Properties:
-      Name: image-resizer-service
+      ServiceName: image-resizer-service
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: ENABLED
