@@ -13,7 +13,6 @@ permissions:
 
 hooks:
   ApplicationStart:
-    - location: scripts/start_server.sh
-    - location: scripts/create_test_db.sh
+    - location: scripts/startsh
       timeout: 300
       runas: root
