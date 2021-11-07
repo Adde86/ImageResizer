@@ -24,7 +24,7 @@ public class Controller {
 
     @GetMapping("/test-three")
     public String testThree(){
-        return "This should not be pushed, but somehow it is anyways";
+        return "pushing to another branch, can this be merged?";
     }
 
     @GetMapping("/test-four")
