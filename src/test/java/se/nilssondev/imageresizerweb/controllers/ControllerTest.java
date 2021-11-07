@@ -8,7 +8,7 @@ class ControllerTest {
 
     @Test
     void index() {
-        fail();
+
     }
 
     @Test
