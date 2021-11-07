@@ -24,7 +24,7 @@ public class Controller {
 
     @GetMapping("/test-three")
     public String testThree(){
-        return "Third time the charm";
+        return "This should not be pushed";
     }
 
     @GetMapping("/test-four")
