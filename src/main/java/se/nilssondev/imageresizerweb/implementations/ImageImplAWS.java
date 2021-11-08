@@ -5,21 +5,17 @@ import se.nilssondev.imageresizerweb.services.ImageService;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.core.ResponseInputStream;
+import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
 
-import javax.imageio.ImageIO;
-import java.awt.*;
-import java.awt.image.BufferedImage;
+
 import java.io.*;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -37,7 +33,7 @@ public class ImageImplAWS implements ImageService {
 
     @Override
     public void save(File file) {
-        PutObjectRequest request = PutObjectRequest.builder().bucket(BUCKET_NAME).build();
+        PutObjectRequest request = PutObjectRequest.builder().bucket(BUCKET_NAME).key(file.getName()).build();
         RequestBody body = RequestBody.fromFile(file);
 
         s3.putObject(request, body);
@@ -70,8 +66,11 @@ public class ImageImplAWS implements ImageService {
     }
 
     @Override
-    public String getImage(String id) {
-        return "https://"+BUCKET_NAME+".s3.amazonaws.com/"+id;
+    public String getImage(String id) throws  AwsServiceException, SdkClientException {
+        GetObjectRequest request = GetObjectRequest.builder().bucket(BUCKET_NAME).key(id).build();
+        GetObjectResponse response = s3.getObject(request).response();
+
+       return "https://"+BUCKET_NAME+".s3.amazonaws.com/"+id;
     }
 
     @Override
