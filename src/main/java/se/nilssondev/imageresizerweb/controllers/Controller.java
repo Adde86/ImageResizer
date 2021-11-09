@@ -17,18 +17,4 @@ public class Controller {
         return "Testing something else";
     }
 
-    @GetMapping("/test-again")
-    public String testAgain(){
-        return "ECS works, does CodeDeploy application?";
-    }
-
-    @GetMapping("/test-three")
-    public String testThree(){
-        return "pushing to another branch, can this be merged?";
-    }
-
-    @GetMapping("/test-four")
-    public String testFour(){
-        return "Testing a fourth time";
-    }
 }
