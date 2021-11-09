@@ -12,7 +12,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    environment: development
     steps:
     - uses: actions/checkout@v2
     - name: Set up JDK 11
@@ -21,5 +20,11 @@ jobs:
         java-version: '11'
         distribution: 'adopt'
         cache: maven
+    - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: <eu-west-1>
     - name: Build with Maven
       run: mvn -B package --file pom.xml
