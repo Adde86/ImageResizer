@@ -9,19 +9,16 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.Arrays;
 
 @Slf4j
 @Service
 public class ImageHandler {
 
-    private final ImageService imageService;
 
     private static String[] acceptedFileSuffixes = new String[]{".jpeg", ".jpg", ".png", ".pdf" };
 
-    public ImageHandler(ImageService imageService) {
-        this.imageService = imageService;
-    }
 
     public boolean validateImage(String file) {
         String suffix = file.substring(file.lastIndexOf('.'));
@@ -41,6 +38,7 @@ public class ImageHandler {
        BufferedImage resized = new BufferedImage(200,200,BufferedImage.TYPE_INT_RGB);
        Graphics2D graphics2D = resized.createGraphics();
        graphics2D.drawImage(imageToResize,0,0,200,200,null);
+
        graphics2D.dispose();
 
        return resized;
@@ -57,9 +55,15 @@ public class ImageHandler {
         return null;
     }
 
-    public void resizeAndSave(File file) {
+    public File resizeFile(File file) throws IOException {
         BufferedImage imageToSave = resizeImage(createImageFromFile(file));
-        File fileToSave = ImageIO.getCacheDirectory();
-       imageService.save(fileToSave);
+
+        String filename = file.getAbsolutePath();
+        String newFileName = filename.substring(0, filename.lastIndexOf('.')) + "_thumb.jpg";
+        File newFile = new File(newFileName);
+        if(ImageIO.write(imageToSave, "jpg", newFile)){
+            return newFile;
+        }
+        return null;
     }
 }

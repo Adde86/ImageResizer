@@ -1,0 +1,256 @@
+AWSTemplateFormatVersion: 2010-09-09
+Parameters:
+  MyKeyPair:
+    Description: EC2 Key Pair
+    Type: "AWS::EC2::KeyPair::KeyName"
+  #VPC:
+   # Description: VPC
+    #Type: "AWS::EC2::VPC::Id"
+  #Subnets:
+    #Description: Subnets to use
+    #Type: "List<AWS::EC2::Subnet::Id>"
+  AZs:
+    Description: Availability Zones to use
+    Type: "List<AWS::EC2::AvailabilityZone::Name>"
+  
+
+Resources:
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: "10.0.0.0/16"
+      EnableDnsSupport: 'false'
+      EnableDnsHostnames: 'false'
+      InstanceTenancy: default
+  IGW:
+    Type: AWS::EC2::InternetGateway
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId:
+         Ref: VPC
+      InternetGatewayId:
+         Ref: IGW
+  IPv6CidrBlock:
+    Type: AWS::EC2::VPCCidrBlock
+    Properties:
+      AmazonProvidedIpv6CidrBlock: true
+      VpcId: !Ref VPC
+
+  Subnet1:
+    Type: AWS::EC2::Subnet
+    DependsOn: IPv6CidrBlock
+    Properties:
+      AvailabilityZone: !Select [0, !Ref AZs]
+      AssignIpv6AddressOnCreation: true
+      CidrBlock: !Select [ 0, !Cidr [ !GetAtt VPC.CidrBlock, 256, 8 ]]
+      Ipv6CidrBlock: !Select [ 0, !Cidr [ !Select [ 0, !GetAtt VPC.Ipv6CidrBlocks], 1, 64 ]]
+      VpcId: !Ref VPC
+  Subnet2:
+    Type: AWS::EC2::Subnet
+    DependsOn: IPv6CidrBlock
+    Properties:
+      AvailabilityZone: !Select [1, !Ref AZs]
+      AssignIpv6AddressOnCreation: true
+      CidrBlock: !Select [ 1, !Cidr [ !GetAtt VPC.CidrBlock, 256, 8 ]]
+      Ipv6CidrBlock: !Select [ 1, !Cidr [ !Select [ 0, !GetAtt VPC.Ipv6CidrBlocks], 256, 64 ]]
+      VpcId: !Ref VPC      
+  InstanceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: "Internet Group For Image Resizer"
+      VpcId: !Ref VPC
+      GroupDescription: "SSH and web traffic in, all traffic out."
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp:  0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '80'
+          ToPort: '80'
+          CidrIp:  0.0.0.0/0
+          #SourceSecurityGroupId: !Select [0, !GetAtt LoadBalancer.SecurityGroups]
+  ImageResizerInstanceRole: 
+    Type: "AWS::IAM::Role"
+    Properties: 
+      AssumeRolePolicyDocument: 
+        Version: "2012-10-17"
+        Statement:  
+          - Effect: "Allow"
+            Principal: 
+              Service: 
+                - "ec2.amazonaws.com"
+            Action: 
+              - "sts:AssumeRole"
+      Path: "/"
+  RolePolicies: 
+    Type: "AWS::IAM::Policy"
+    Properties: 
+      PolicyName: "image-resizer-policy"
+      PolicyDocument: 
+        Version: "2012-10-17"
+        Statement: 
+          - Effect: "Allow"
+            Action: "s3:*"
+            Resource: "*"
+      Roles: 
+        - Ref: ImageResizerInstanceRole
+  ResizerInstanceProfile:
+    Type: 'AWS::IAM::InstanceProfile'
+    Properties:
+      InstanceProfileName: "ImageResizerInstanceProfile"
+      Roles:
+        - Ref: ImageResizerInstanceRole
+  LoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      IpAddressType: dualstack
+      Name: image-resizer-lb
+      #SecurityGroups:
+        #- Ref: InstanceSecurityGroup
+      Subnets: #!Ref Subnets
+        - !Ref Subnet1
+        - !Ref Subnet2
+  HTTPlistener:
+   Type: "AWS::ElasticLoadBalancingV2::Listener"
+   Properties:
+     DefaultActions:
+       - Type: forward
+         TargetGroupArn: !Ref LoadBalancingTargetGroup
+     LoadBalancerArn: !Ref LoadBalancer
+     Port: 80
+     Protocol: "HTTP"
+        
+  LoadBalancingTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: "image-resizer-target-group"
+      Port: 80
+      Protocol: HTTP
+      TargetType: instance
+      VpcId: !Ref VPC
+  AutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      AutoScalingGroupName: "image-resizer-as-group"
+      #AvailabilityZones:
+        #- !Ref AZs
+      DesiredCapacity: 3
+      #HealthCheckType: ELB
+      #HealthCheckGracePeriod: 30
+      LaunchTemplate:
+        LaunchTemplateId: !Ref LaunchTemplate
+        Version: 1
+      TargetGroupARNs: 
+        - !Ref LoadBalancingTargetGroup #!GetAtt LoadBalancingTargetGroup.Arn
+      MaxSize: 5
+      MinSize: 2
+      VPCZoneIdentifier:
+        - !Ref Subnet1 #!Ref Subnets
+        - !Ref Subnet2
+  CPUPolicy:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Properties:
+      AutoScalingGroupName: !Ref AutoScalingGroup
+      PolicyType: TargetTrackingScaling
+      TargetTrackingConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ASGAverageCPUUtilization
+        TargetValue: 80
+  LaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateData:
+        BlockDeviceMappings: 
+          - Ebs:
+              VolumeSize: 8
+              VolumeType: gp2
+              DeleteOnTermination: true
+              Encrypted: true
+            DeviceName: /dev/xvdh
+        IamInstanceProfile: 
+          Arn: !GetAtt ResizerInstanceProfile.Arn
+        ImageId: ami-0ed961fa828560210
+        InstanceType: t2.micro
+        KeyName: !Ref MyKeyPair
+        SecurityGroupIds:
+          - !GetAtt InstanceSecurityGroup.GroupId
+        TagSpecifications:
+          - ResourceType: instance
+            Tags:
+              - Key: "Name"
+                Value: "image-resizer-server"
+        UserData:
+           Fn::Base64: |
+              #!/bin/bash
+              yum -y update
+              yum install -y ruby
+              yum install -y aws-cli
+              yum install -y java
+              cd /home/ec2-user
+              wget https://aws-codedeploy-us-east-2.s3.us-east-2.amazonaws.com/latest/install
+              chmod +x ./install
+              ./install auto
+  Bucket:
+    Type: AWS::S3::Bucket
+    DependsOn: TopicPolicy
+    DeletionPolicy: Delete
+    Properties:
+      BucketName: "image-resizer-input-bucket"
+      AccessControl: Private
+      NotificationConfiguration:
+        TopicConfigurations:
+          - Topic: !Ref Topic
+            Event: 's3:ObjectCreated:*'
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: prefix
+                    Value: "images/"          
+  Topic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: image-resizer-topic
+      Subscription:
+        - Endpoint:
+            Fn::GetAtt:
+              - "ImageQueue"
+              - "Arn"
+          Protocol: "sqs"
+  TopicPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      Topics:
+        - !Ref Topic
+      PolicyDocument:
+        Id: TopicPolicyId
+        Version: "2012-10-17"
+        Statement:
+          - Sid: topic-statement-id
+            Effect: Allow
+            Principal:
+              AWS: "*"
+            Action:
+              - "sns:Publish"
+            Resource: "*"
+            Condition:
+              StringEquals:
+                'AWS:SourceOwner': "977629633660"
+          - Sid: s3-publis-statement-id
+            Effect: Allow
+            Principal:
+              Service: "s3.amazonaws.com"
+            Action:
+              - "SNS:Publish"
+            Resource: !Ref Topic
+            Condition:
+              StringEquals:
+                "aws:SourceArn": "arn:aws:s3:::image-resizer-input-bucket"
+  ImageQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: "image-resizer-queue"
+
+
+ 

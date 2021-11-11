@@ -7,52 +7,83 @@ import com.amazon.sqs.javamessaging.SQSConnectionFactory;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
+import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.springframework.stereotype.Component;
+import se.nilssondev.imageresizerweb.implementations.ImageImplAWS;
+import se.nilssondev.imageresizerweb.models.S3ObjectModel;
+import se.nilssondev.imageresizerweb.services.ImageService;
 
 import javax.jms.*;
 
-import java.util.HashMap;
+
+import java.io.File;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
 
 @Component
+@Slf4j
+@Data
 public class MessageHandler {
+
+    private SQSConnection connection;
+    private AmazonSQSMessagingClientWrapper client;
+    private final String QUEUE_NAME = "image-resizer-queue";
+    private MessageConsumer consumer;
+
+
 
     public MessageHandler() throws JMSException, InterruptedException {
 
+        this.connection = createConnection();
 
+         this.client = connection.getWrappedAmazonSQSClient();
 
-        // Create a new connection factory with all defaults (credentials and region) set automatically
-        SQSConnectionFactory connectionFactory = new SQSConnectionFactory(
-                new ProviderConfiguration(),
-                AmazonSQSClientBuilder.standard().withRegion(Regions.EU_WEST_1)
-        );
-
-
-// Create the connection.
-        SQSConnection connection = connectionFactory.createConnection();
-        AmazonSQSMessagingClientWrapper client = connection.getWrappedAmazonSQSClient();
-
-        if(!client.queueExists("image-resizer-queue")){
-            client.createQueue("image-resizer-queue");
+        if(!client.queueExists(QUEUE_NAME)){
+            client.createQueue(QUEUE_NAME);
         }
 
-        Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
-        Queue queue = session.createQueue("image-resizer-queue");
-        MessageConsumer consumer = session.createConsumer(queue);
-        consumer.setMessageListener(new ImageEventListener());
+        createSession(connection);
 
         connection.start();
 
         Thread.sleep(1000);
     }
 
+    public SQSConnection createConnection() throws JMSException {
+
+        SQSConnectionFactory connectionFactory = new SQSConnectionFactory(
+                new ProviderConfiguration(),
+                AmazonSQSClientBuilder.standard().withRegion(Regions.EU_WEST_1)
+        );
+        return connectionFactory.createConnection();
+    }
+
+    public void createSession(SQSConnection connection) throws JMSException {
+
+        Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+        Queue queue = session.createQueue(QUEUE_NAME);
+        this.consumer = session.createConsumer(queue);
+        this.consumer.setMessageListener(new ImageEventListener());
+    }
+
 }
 
+@Slf4j
+@Component
 class ImageEventListener implements MessageListener {
+
+    private ImageService imageService;
+    private ImageHandler imageHandler;
+
+    public ImageEventListener() {
+        this.imageService = new ImageImplAWS();
+        this.imageHandler = new ImageHandler();
+    }
 
     @Override
     public void onMessage(Message message) {
@@ -60,13 +91,29 @@ class ImageEventListener implements MessageListener {
         TextMessage text = (TextMessage) message;
         try {
             String body = text.getText();
-            System.out.println(getURLFromMessage(body));
-        } catch (JMSException  | JsonProcessingException e) {
-            e.printStackTrace();
+            S3ObjectModel model = getS3ObjectModel(body);
+            File fileToHandle = imageService.getImage(model.getKey());
+            fileToHandle = processImage(fileToHandle);
+            if(imageService.save(fileToHandle))
+                fileToHandle.delete();
 
+
+        } catch (JMSException | IOException e) {
+            log.error(e.getMessage());
         }
     }
-    public String getURLFromMessage(String text) throws JsonProcessingException {
+
+    public File processImage(File fileToHandle) throws IOException {
+
+       File updatedFile = imageHandler.resizeFile(fileToHandle);
+       log.info("image: " +fileToHandle.getName() + " processed");
+       return updatedFile;
+
+
+
+    }
+
+    public S3ObjectModel getS3ObjectModel(String text) throws JsonProcessingException {
         ObjectMapper mapper = new ObjectMapper();
         Map<String, String> json = mapper.readValue(text, Map.class);
 
@@ -76,8 +123,8 @@ class ImageEventListener implements MessageListener {
         Map<String,Object> firstRecord = records.get(0);
         Map<String, Object> s3 = (Map<String, Object>)firstRecord.get("s3");
         String bucketName = (String)((Map<String,Object>)s3.get("bucket")).get("name");
-        String id = (String)((Map<String,Object>)s3.get("object")).get("key");
+        String key = (String)((Map<String,Object>)s3.get("object")).get("key");
 
-        return "https://"+bucketName+".s3.amazonaws.com/"+id;
+        return new S3ObjectModel(bucketName,"https://"+bucketName+".s3.amazonaws.com/"+key, key);
     }
 }
