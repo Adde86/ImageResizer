@@ -1,12 +1,9 @@
 package se.nilssondev.imageresizerweb.implementations;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import se.nilssondev.imageresizerweb.services.ImageService;
-import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
-import software.amazon.awssdk.auth.credentials.AwsCredentials;
-import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
-import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.regions.Region;
@@ -16,14 +13,12 @@ import software.amazon.awssdk.services.s3.model.*;
 
 import java.io.*;
 
-import java.util.ArrayList;
-import java.util.List;
-
 @Service
+@Slf4j
 public class ImageImplAWS implements ImageService {
 
     private final S3Client s3;
-    private final String BUCKET_NAME = "image-resizer-images";
+    private final String BUCKET_NAME = "image-resizer-input-bucket";
 
     public ImageImplAWS() {
 
@@ -32,45 +27,36 @@ public class ImageImplAWS implements ImageService {
     }
 
     @Override
-    public void save(File file) {
+    public boolean save(File file) {
         PutObjectRequest request = PutObjectRequest.builder().bucket(BUCKET_NAME).key(file.getName()).build();
         RequestBody body = RequestBody.fromFile(file);
 
-        s3.putObject(request, body);
+        PutObjectResponse response = s3.putObject(request, body);
+        return response.sdkHttpResponse().isSuccessful();
     }
 
-    @Override
-    public List<String> getImages() {
-
-
-        List<String> imageUrls = new ArrayList<>();
-        try {
-            ListObjectsRequest listObjects = ListObjectsRequest
-                    .builder()
-                    .bucket(BUCKET_NAME)
-                    .build();
-
-            ListObjectsResponse res = s3.listObjects(listObjects);
-            List<S3Object> objects = res.contents();
-
-           for(S3Object object : objects){
-                imageUrls.add("https://"+BUCKET_NAME+".s3.amazonaws.com/"+object.key());
-
-           }
-
-        } catch (S3Exception e) {
-            System.err.println(e.getMessage());
-            System.exit(1);
-        }
-        return imageUrls;
-    }
 
     @Override
-    public String getImage(String id) throws  AwsServiceException, SdkClientException {
+    public File getImage(String id) throws  AwsServiceException, SdkClientException {
         GetObjectRequest request = GetObjectRequest.builder().bucket(BUCKET_NAME).key(id).build();
-        GetObjectResponse response = s3.getObject(request).response();
 
-       return "https://"+BUCKET_NAME+".s3.amazonaws.com/"+id;
+        try {
+            byte[] bytes = s3.getObject(request).readAllBytes();
+
+           try( FileOutputStream fileOut = new FileOutputStream("src/main/resources/static/temp/"+id)) {
+               fileOut.write(bytes);
+
+           }catch(IOException e){
+               log.error(e.getMessage());
+               return null;
+           }
+        }catch(Exception e){
+            log.error(e.getMessage());
+            return null;
+
+        }
+        return new File("src/main/resources/static/temp/"+id);
+
     }
 
     @Override

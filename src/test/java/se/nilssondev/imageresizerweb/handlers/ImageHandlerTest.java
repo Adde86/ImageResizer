@@ -8,10 +8,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import se.nilssondev.imageresizerweb.services.ImageService;
+
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -22,19 +20,14 @@ import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+
 
 @ExtendWith(MockitoExtension.class)
 class ImageHandlerTest {
 
-    @Mock
-    ImageService imageService;
 
     private static LogCaptor logCaptor;
 
-    @InjectMocks
     ImageHandler imageHandler;
 
 
@@ -65,14 +58,14 @@ class ImageHandlerTest {
 
     private static Stream<Arguments> provideFilesForValidateFile() {
         return Stream.of(
-                Arguments.of(Paths.get("src/main/resources/static/lfc3.jpg").toFile(), true),
+                Arguments.of(Paths.get("src/main/resources/static/lfc2.jpg").toFile(), true),
                 Arguments.of(Paths.get("src/main/resources/static/").toFile(), false)
         );
     }
 
     @Test
     void resizeImage() throws IOException {
-        BufferedImage imageToResize = ImageIO.read(Paths.get("src/main/resources/static/lfc3.jpg").toFile());
+        BufferedImage imageToResize = ImageIO.read(Paths.get("src/main/resources/static/temp/lfc2.jpg").toFile());
         BufferedImage resizedImage = imageHandler.resizeImage(imageToResize);
         assertEquals(200, resizedImage.getHeight());
         assertEquals(200, resizedImage.getWidth());
@@ -80,15 +73,15 @@ class ImageHandlerTest {
 
     @Test
     void createImageFromFile() {
-        File file = Paths.get("src/main/resources/static/lfc3.jpg").toFile();
+        File file = Paths.get("src/main/resources/static/lfc4.jpg").toFile();
         assertEquals(BufferedImage.class, imageHandler.createImageFromFile(file).getClass());
     }
 
     @Test
-    void resizeAndSave() {
-        File file = Paths.get("src/main/resources/static/lfc3.jpg").toFile();
-        imageHandler.resizeAndSave(file);
-        verify(imageService, times(1)).save(any());
+    void ImageResizedExistsNewName() throws IOException {
+        File file = Paths.get("src/main/resources/static/lfc4.jpg").toFile();
+        File newFile = imageHandler.resizeFile(file);
+        assertEquals("lfc4_thumb.jpg", newFile.getName());
     }
 
     @Test
