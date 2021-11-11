@@ -1,16 +1,20 @@
 package se.nilssondev.imageresizerweb.implementations;
 
+import nl.altindag.log.LogCaptor;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import se.nilssondev.imageresizerweb.handlers.ImageHandler;
 import se.nilssondev.imageresizerweb.services.ImageService;
 import software.amazon.awssdk.services.s3.S3Client;
 
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
@@ -20,9 +24,8 @@ import static org.junit.jupiter.api.Assertions.*;
 @ExtendWith(MockitoExtension.class)
 class ImageImplAWSTest {
 
-    @Mock
-    S3Client client;
-    @InjectMocks
+    static String imageFolder;
+
     ImageService aws;
 
     File image;
@@ -40,9 +43,9 @@ class ImageImplAWSTest {
     @Test
     void getDefaultImage() {
 
-        assertEquals("lfc.jpg", aws.getImage("lfc.jpg").getName());
+        assertEquals("lfc2.jpg", aws.getImage("lfc2.jpg").getName());
         try {
-            Files.delete(Paths.get("src/main/resources/static/temp/lfc.jpg"));
+            Files.delete(Paths.get("lfc2.jpg"));
         }catch (Exception e){
             System.out.println("file not found");
         }
@@ -59,12 +62,29 @@ class ImageImplAWSTest {
         aws.save(image);
         assertEquals(image.getName(), aws.getImage(image.getName()).getName());
         aws.delete(image.getName());
+        try {
+            Files.delete(Paths.get(image.getName()));
+        } catch (IOException e) {
+            System.out.println("file not found");
+        }
         assertNull(aws.getImage(image.getName()));
+
+    }
+
+    @BeforeAll
+    static void beforeAll() {
+
+        if (Files.isDirectory(Paths.get("target/classes/static"))){
+            imageFolder = "target/classes/static";
+        }else {
+            imageFolder = "src/main/resources/static";
+        }
+
 
     }
 
     @BeforeEach
     void setUp() {
-         image = Paths.get("src/main/resources/static/lfc2.jpg").toFile();
+         image = Paths.get(imageFolder+"/lfc.jpg").toFile();
     }
 }

@@ -43,7 +43,7 @@ public class ImageImplAWS implements ImageService {
         try {
             byte[] bytes = s3.getObject(request).readAllBytes();
 
-           try( FileOutputStream fileOut = new FileOutputStream("src/main/resources/static/temp/"+id)) {
+           try( FileOutputStream fileOut = new FileOutputStream(id)) {
                fileOut.write(bytes);
 
            }catch(IOException e){
@@ -55,7 +55,7 @@ public class ImageImplAWS implements ImageService {
             return null;
 
         }
-        return new File("src/main/resources/static/temp/"+id);
+        return new File(id);
 
     }
 
