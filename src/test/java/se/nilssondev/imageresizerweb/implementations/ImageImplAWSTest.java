@@ -43,9 +43,9 @@ class ImageImplAWSTest {
     @Test
     void getDefaultImage() {
 
-        assertEquals("lfc2.jpg", aws.getImage("lfc2.jpg").getName());
+        assertEquals("lfc.jpg", aws.getImage("lfc.jpg").getName());
         try {
-            Files.delete(Paths.get("lfc2.jpg"));
+            Files.delete(Paths.get("lfc.jpg"));
         }catch (Exception e){
             System.out.println("file not found");
         }

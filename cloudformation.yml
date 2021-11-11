@@ -3,58 +3,18 @@ Parameters:
   MyKeyPair:
     Description: EC2 Key Pair
     Type: "AWS::EC2::KeyPair::KeyName"
-  #VPC:
-   # Description: VPC
-    #Type: "AWS::EC2::VPC::Id"
-  #Subnets:
-    #Description: Subnets to use
-    #Type: "List<AWS::EC2::Subnet::Id>"
+  VPC:
+    Description: VPC
+    Type: "AWS::EC2::VPC::Id"
+  Subnets:
+    Description: Subnets to use
+    Type: "List<AWS::EC2::Subnet::Id>"
   AZs:
     Description: Availability Zones to use
     Type: "List<AWS::EC2::AvailabilityZone::Name>"
   
 
 Resources:
-  VPC:
-    Type: AWS::EC2::VPC
-    Properties:
-      CidrBlock: "10.0.0.0/16"
-      EnableDnsSupport: 'false'
-      EnableDnsHostnames: 'false'
-      InstanceTenancy: default
-  IGW:
-    Type: AWS::EC2::InternetGateway
-  AttachGateway:
-    Type: AWS::EC2::VPCGatewayAttachment
-    Properties:
-      VpcId:
-         Ref: VPC
-      InternetGatewayId:
-         Ref: IGW
-  IPv6CidrBlock:
-    Type: AWS::EC2::VPCCidrBlock
-    Properties:
-      AmazonProvidedIpv6CidrBlock: true
-      VpcId: !Ref VPC
-
-  Subnet1:
-    Type: AWS::EC2::Subnet
-    DependsOn: IPv6CidrBlock
-    Properties:
-      AvailabilityZone: !Select [0, !Ref AZs]
-      AssignIpv6AddressOnCreation: true
-      CidrBlock: !Select [ 0, !Cidr [ !GetAtt VPC.CidrBlock, 256, 8 ]]
-      Ipv6CidrBlock: !Select [ 0, !Cidr [ !Select [ 0, !GetAtt VPC.Ipv6CidrBlocks], 1, 64 ]]
-      VpcId: !Ref VPC
-  Subnet2:
-    Type: AWS::EC2::Subnet
-    DependsOn: IPv6CidrBlock
-    Properties:
-      AvailabilityZone: !Select [1, !Ref AZs]
-      AssignIpv6AddressOnCreation: true
-      CidrBlock: !Select [ 1, !Cidr [ !GetAtt VPC.CidrBlock, 256, 8 ]]
-      Ipv6CidrBlock: !Select [ 1, !Cidr [ !Select [ 0, !GetAtt VPC.Ipv6CidrBlocks], 256, 64 ]]
-      VpcId: !Ref VPC      
   InstanceSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -105,13 +65,13 @@ Resources:
   LoadBalancer:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
-      IpAddressType: dualstack
+      IpAddressType: ipv4
       Name: image-resizer-lb
       #SecurityGroups:
         #- Ref: InstanceSecurityGroup
       Subnets: #!Ref Subnets
-        - !Ref Subnet1
-        - !Ref Subnet2
+        - !Select [0, !Ref Subnets] #!Ref Subnet1
+        - !Select [1, !Ref Subnets] #!Ref Subnet2
   HTTPlistener:
    Type: "AWS::ElasticLoadBalancingV2::Listener"
    Properties:
@@ -147,8 +107,8 @@ Resources:
       MaxSize: 5
       MinSize: 2
       VPCZoneIdentifier:
-        - !Ref Subnet1 #!Ref Subnets
-        - !Ref Subnet2
+        - !Select [0, !Ref Subnets] #!Ref Subnet1
+        - !Select [1, !Ref Subnets] #!Ref Subnet2
   CPUPolicy:
     Type: AWS::AutoScaling::ScalingPolicy
     Properties:
