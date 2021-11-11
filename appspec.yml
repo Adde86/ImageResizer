@@ -13,10 +13,10 @@ permissions:
 
 hooks:
   ApplicationStop:
-      location: stop.sh
-      timeout: 300
-      runas: root
+      - location: stop.sh
+        timeout: 300
+        runas: root
   ApplicationStart:
-      location: start.sh
-      timeout: 300
-      runas: root
+      - location: start.sh
+        timeout: 300
+        runas: root
