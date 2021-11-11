@@ -17,6 +17,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Enumeration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -25,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @ExtendWith(MockitoExtension.class)
 class ImageEventListenerTest {
 
+    static String imageFolder;
 
     String message;
 
@@ -47,10 +49,10 @@ class ImageEventListenerTest {
 
    @Test
    void resizeImageTest() throws IOException {
-        File file = new File("src/main/resources/static/arsta.jpg");
+        File file = new File(imageFolder+"/arsta.jpg");
 
         File newFile = eventListener.processImage(file);
-        assertTrue(Files.exists(Path.of("src/main/resources/static/arsta_thumb.jpg")));
+        assertTrue(Files.exists(Path.of(imageFolder+"/arsta_thumb.jpg")));
 
         newFile.delete();
    }
@@ -60,10 +62,7 @@ class ImageEventListenerTest {
         logCaptor.clearLogs();
     }
 
-    @BeforeAll
-    static void beforeAll() {
-        logCaptor = LogCaptor.forClass(ImageHandler.class);
-    }
+
 
     @BeforeEach
     void setUp() {
@@ -80,6 +79,18 @@ class ImageEventListenerTest {
                 "  \"SigningCertURL\" : \"https://sns.eu-west-1.amazonaws.com/SimpleNotificationService-7ff5318490ec183fbaddaa2a969abfda.pem\",\n" +
                 "  \"UnsubscribeURL\" : \"https://sns.eu-west-1.amazonaws.com/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:eu-west-1:977629633660:image-uploaded:34189a95-5437-4167-a880-1376ab093894\"\n" +
                 "}";
+    }
+
+    @BeforeAll
+    static void beforeAll() {
+        logCaptor = LogCaptor.forClass(ImageHandler.class);
+        if (Files.isDirectory(Paths.get("target/classes/static"))){
+            imageFolder = "target/classes/static";
+        }else {
+            imageFolder = "src/main/resources/static";
+        }
+
+
     }
 }
 
