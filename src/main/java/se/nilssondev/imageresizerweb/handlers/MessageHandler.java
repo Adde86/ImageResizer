@@ -69,6 +69,7 @@ public class MessageHandler {
         Queue queue = session.createQueue(QUEUE_NAME);
         this.consumer = session.createConsumer(queue);
         this.consumer.setMessageListener(new ImageEventListener());
+
     }
 
 }
@@ -88,14 +89,17 @@ class ImageEventListener implements MessageListener {
     @Override
     public void onMessage(Message message) {
 
+
         TextMessage text = (TextMessage) message;
         try {
+
             String body = text.getText();
             S3ObjectModel model = getS3ObjectModel(body);
             File fileToHandle = imageService.getImage(model.getKey());
-            fileToHandle = processImage(fileToHandle);
-            if(imageService.save(fileToHandle))
+            File processedFile = processImage(fileToHandle);
+            if(imageService.save(processedFile))
                 fileToHandle.delete();
+                processedFile.delete();
 
 
         } catch (JMSException | IOException e) {
@@ -124,6 +128,7 @@ class ImageEventListener implements MessageListener {
         Map<String, Object> s3 = (Map<String, Object>)firstRecord.get("s3");
         String bucketName = (String)((Map<String,Object>)s3.get("bucket")).get("name");
         String key = (String)((Map<String,Object>)s3.get("object")).get("key");
+
 
         return new S3ObjectModel(bucketName,"https://"+bucketName+".s3.amazonaws.com/"+key, key);
     }

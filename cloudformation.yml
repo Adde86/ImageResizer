@@ -67,8 +67,8 @@ Resources:
     Properties:
       IpAddressType: ipv4
       Name: image-resizer-lb
-      #SecurityGroups:
-        #- Ref: InstanceSecurityGroup
+      SecurityGroups:
+         - !GetAtt InstanceSecurityGroup.GroupId
       Subnets: #!Ref Subnets
         - !Select [0, !Ref Subnets] #!Ref Subnet1
         - !Select [1, !Ref Subnets] #!Ref Subnet2
@@ -163,11 +163,12 @@ Resources:
         TopicConfigurations:
           - Topic: !Ref Topic
             Event: 's3:ObjectCreated:*'
-            Filter:
-              S3Key:
-                Rules:
-                  - Name: prefix
-                    Value: "images/"          
+  OutputBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Delete
+    Properties:
+      BucketName: "image-resizer-output"
+      AccessControl: Private
   Topic:
     Type: AWS::SNS::Topic
     Properties:
@@ -211,6 +212,37 @@ Resources:
     Type: AWS::SQS::Queue
     Properties:
       QueueName: "image-resizer-queue"
+  QueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref ImageQueue
+      PolicyDocument:
+        Id: QueueStatementId
+        Version: "2012-10-17"
+        Statement:
+          - Sid: queue-statement-id
+            Effect: Allow
+            Principal:
+              AWS: "*"
+            Action:
+              - "sqs:SendMessage"
+              - "sqs:ReceiveMessage"
+              - "sqs:CreateQueue"
+            Resource: "*"
+          - Sid: queue-allow-ec2-statement
+            Effect: Allow
+            Principal:
+              Service: "ec2.amazonaws.com"
+            Action:
+              - "sqs:SendMessage"
+              - "sqs:ReceiveMessage"
+              - "sqs:CreateQueue"
+            Resource: "*"
+            Condition:
+              StringEquals:
+                "aws:SourceArn": "arn:aws:ec2:::*"
+
 
 
  
