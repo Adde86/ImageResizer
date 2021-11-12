@@ -33,7 +33,7 @@ class ImageHandlerTest {
     ImageHandlerTest() {
         ImageService imageService = new ImageImplAWS();
         this.imageHandler = new ImageHandler();
-        this.image = imageService.getImage("lfc.jpg");
+        this.image = imageService.getImage("lfc.jpg", "image-resizer-images");
     }
 
 

@@ -18,8 +18,7 @@ import java.io.*;
 public class ImageImplAWS implements ImageService {
 
     private final S3Client s3;
-    private final String BUCKET_NAME = "image-resizer-input-bucket";
-    private final String BUCKET_OUTPUT_NAME = "image-resizer-output";
+
 
     public ImageImplAWS() {
 
@@ -28,8 +27,8 @@ public class ImageImplAWS implements ImageService {
     }
 
     @Override
-    public boolean save(File file) {
-        PutObjectRequest request = PutObjectRequest.builder().bucket(BUCKET_OUTPUT_NAME).key(file.getName()).build();
+    public boolean save(File file, String bucketName) {
+        PutObjectRequest request = PutObjectRequest.builder().bucket(bucketName).key(file.getName()).build();
         RequestBody body = RequestBody.fromFile(file);
 
         PutObjectResponse response = s3.putObject(request, body);
@@ -38,8 +37,8 @@ public class ImageImplAWS implements ImageService {
 
 
     @Override
-    public File getImage(String id) throws  AwsServiceException, SdkClientException {
-        GetObjectRequest request = GetObjectRequest.builder().bucket(BUCKET_NAME).key(id).build();
+    public File getImage(String id, String bucketName) throws  AwsServiceException, SdkClientException {
+        GetObjectRequest request = GetObjectRequest.builder().bucket(bucketName).key(id).build();
 
         try {
             byte[] bytes = s3.getObject(request).readAllBytes();
@@ -61,8 +60,8 @@ public class ImageImplAWS implements ImageService {
     }
 
     @Override
-    public void delete(String id) {
-        DeleteObjectRequest request = DeleteObjectRequest.builder().bucket(BUCKET_NAME).key(id).build();
+    public void delete(String id, String bucketName) {
+        DeleteObjectRequest request = DeleteObjectRequest.builder().bucket(bucketName).key(id).build();
         s3.deleteObject(request);
     }
 }

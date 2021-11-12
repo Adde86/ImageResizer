@@ -11,6 +11,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import se.nilssondev.imageresizerweb.handlers.ImageHandler;
 import se.nilssondev.imageresizerweb.services.ImageService;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 
 
 import java.io.File;
@@ -19,6 +20,8 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 
 @ExtendWith(MockitoExtension.class)
@@ -26,9 +29,11 @@ class ImageImplAWSTest {
 
     static String imageFolder;
 
+    File image;
+
     ImageService aws;
 
-    File image;
+    final String TEST_BUCKET = "image-resizer-images";
 
     public ImageImplAWSTest(){
         aws = new ImageImplAWS();
@@ -36,14 +41,15 @@ class ImageImplAWSTest {
 
     @Test
     void save() {
-        assertTrue(aws.save(image));
+        assertTrue(aws.save(image, TEST_BUCKET));
     }
 
 
     @Test
     void getDefaultImage() {
 
-        assertEquals("lfc.jpg", aws.getImage("lfc.jpg").getName());
+
+        assertEquals("lfc.jpg", aws.getImage("lfc.jpg", TEST_BUCKET).getName());
         try {
             Files.delete(Paths.get("lfc.jpg"));
         }catch (Exception e){
@@ -54,22 +60,20 @@ class ImageImplAWSTest {
     @Test
     void getImageIdDoesntExist(){
         String wrongId = "not-here";
-        assertNull(aws.getImage(wrongId));
+        assertNull(aws.getImage(wrongId, TEST_BUCKET));
     }
 
     @Test
     void delete() {
-        aws.save(image);
-        assertEquals(image.getName(), aws.getImage(image.getName()).getName());
-        aws.delete(image.getName());
-        try {
-            Files.delete(Paths.get(image.getName()));
-        } catch (IOException e) {
-            System.out.println("file not found");
-        }
-        assertNull(aws.getImage(image.getName()));
+        aws.save(image, "image-resizer-images");
+        assertEquals(image.getName(), aws.getImage(image.getName(), TEST_BUCKET).getName());
+        aws.delete(image.getName(), TEST_BUCKET);
 
+        assertNull(aws.getImage(image.getName(), TEST_BUCKET));
+        aws.save(new File("lfc.jpg"), TEST_BUCKET);
     }
+
+
 
     @BeforeAll
     static void beforeAll() {
