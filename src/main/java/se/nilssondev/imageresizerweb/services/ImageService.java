@@ -4,7 +4,7 @@ import java.util.List;
 import java.io.File;
 
 public interface ImageService {
-    boolean save(File file);
-    File getImage(String id);
-    void delete(String id);
+    boolean save(File file, String bucketName);
+    File getImage(String id, String bucketName);
+    void delete(String id, String bucketName);
 }

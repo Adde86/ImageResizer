@@ -95,11 +95,12 @@ class ImageEventListener implements MessageListener {
 
             String body = text.getText();
             S3ObjectModel model = getS3ObjectModel(body);
-            File fileToHandle = imageService.getImage(model.getKey());
+            File fileToHandle = imageService.getImage(model.getKey(), "image-resizer-input-bucket");
             File processedFile = processImage(fileToHandle);
-            if(imageService.save(processedFile))
+            if(imageService.save(processedFile, "image-resizer-output")) {
                 fileToHandle.delete();
                 processedFile.delete();
+            }
 
 
         } catch (JMSException | IOException e) {
