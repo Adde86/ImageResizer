@@ -19,6 +19,7 @@ public class ImageImplAWS implements ImageService {
 
     private final S3Client s3;
     private final String BUCKET_NAME = "image-resizer-input-bucket";
+    private final String BUCKET_OUTPUT_NAME = "image-resizer-output";
 
     public ImageImplAWS() {
 
@@ -28,7 +29,7 @@ public class ImageImplAWS implements ImageService {
 
     @Override
     public boolean save(File file) {
-        PutObjectRequest request = PutObjectRequest.builder().bucket(BUCKET_NAME).key(file.getName()).build();
+        PutObjectRequest request = PutObjectRequest.builder().bucket(BUCKET_OUTPUT_NAME).key(file.getName()).build();
         RequestBody body = RequestBody.fromFile(file);
 
         PutObjectResponse response = s3.putObject(request, body);
