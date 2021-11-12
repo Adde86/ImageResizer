@@ -54,6 +54,10 @@ Resources:
           - Effect: "Allow"
             Action: "s3:*"
             Resource: "*"
+          - Effect: "Allow"
+            Action: "sqs:*"
+            Resource: "*"
+
       Roles: 
         - Ref: ImageResizerInstanceRole
   ResizerInstanceProfile:
@@ -233,15 +237,13 @@ Resources:
           - Sid: queue-allow-ec2-statement
             Effect: Allow
             Principal:
-              Service: "ec2.amazonaws.com"
+              AWS: !GetAtt ImageResizerInstanceRole.Arn
             Action:
               - "sqs:SendMessage"
               - "sqs:ReceiveMessage"
               - "sqs:CreateQueue"
-            Resource: "*"
-            Condition:
-              StringEquals:
-                "aws:SourceArn": "arn:aws:ec2:::*"
+            Resource: !GetAtt ImageQueue.Arn
+
 
 
 
